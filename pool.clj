@@ -1,12 +1,15 @@
-(ns pool)
+(ns pool (:import [UnityEngine]))
 
 (defprotocol IPool
   (reuse   [a])
-  (recycle [a b]))
+  (recycle [a b])
+  (stats   [a]))
 
 (deftype Pool [^|System.Object[]|                pool 
                ^System.Int64 ^:volatile-mutable  idx]
   IPool
+  (stats [a]
+    (list (inc idx) '/ (.Length pool)))
   (reuse [a]
     (if (neg? idx) false
       (do (set! idx (dec idx))
@@ -14,8 +17,8 @@
   (recycle [a b]
     (try 
       (set! idx (+ idx 1)) 
-      (aset pool idx b)
-      (catch Exception e false))))
+      (aset pool idx b) nil
+      (catch Exception e nil))))
 
 (defmacro def-pool [length type-sym & fields]
   (let [sym (with-meta (symbol (str "*" type-sym)) {:tag type-sym})
@@ -35,14 +38,19 @@
       (~'def ~pool ~pool)
       (quote (~pool ~sym ~return)))))
 
-(comment 
+(comment) 
 (deftype Pig [^:volatile-mutable color])
-(def-pool 1000 Pig color) ; (<>Pig *Pig !Pig) 
-(.idx <>Pig)              ; -1
-(!Pig (*Pig :blue))       ;  0
-(!Pig (*Pig :gray))       ;  0 
-(*Pig :pink)              ; -1   
-)
+(def-pool 10 Pig color)   ; (<>Pig *Pig !Pig) 
+(*Pig :blue)              ; #<Pig pool.Pig>
+(stats <>Pig)             ; (0 / 10)
+(!Pig (*Pig :red))        ; nil
+(stats <>Pig)             ; (1 / 10)
+
+(map !Pig (map *Pig (range 5)))
+(map *Pig (range 5))
+
+
+
 
 
 

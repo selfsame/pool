@@ -11,14 +11,15 @@
   (stats [a]
     (list (inc idx) '/ (.Length pool)))
   (reuse [a]
-    (if (neg? idx) false
-      (do (set! idx (dec idx))
-          (aget pool (inc idx)))))
+    (try 
+      (set! idx (dec idx))
+      (aget pool (inc idx))
+      (catch Exception e (set! idx (inc idx)) nil)))
   (recycle [a b]
     (try 
-      (set! idx (+ idx 1)) 
+      (set! idx (inc idx)) 
       (aset pool idx b) nil
-      (catch Exception e nil))))
+      (catch Exception e  (set! idx (dec idx)) nil))))
 
 (defmacro def-pool [length type-sym & fields]
   (let [sym (with-meta (symbol (str "*" type-sym)) {:tag type-sym})
@@ -36,9 +37,10 @@
               fields) ~o#)
         (new ~type-sym ~@fields)))
       (~'def ~pool ~pool)
-      (quote (~pool ~sym ~return)))))
+      ;(quote (~pool ~sym ~return))
+      )))
 
-(comment) 
+(comment 
 (deftype Pig [^:volatile-mutable color])
 (def-pool 10 Pig color)   ; (<>Pig *Pig !Pig) 
 (*Pig :blue)              ; #<Pig pool.Pig>
@@ -46,9 +48,9 @@
 (!Pig (*Pig :red))        ; nil
 (stats <>Pig)             ; (1 / 10)
 
-(map !Pig (map *Pig (range 5)))
+(map !Pig (map *Pig (range 50)))
 (map *Pig (range 5))
-
+(.pool <>Pig))
 
 
 

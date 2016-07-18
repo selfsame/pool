@@ -26,7 +26,8 @@
         pool (with-meta (symbol (str "<>" type-sym)) {:tag type-sym})
         return (with-meta (symbol (str "!" type-sym)) {:tag System.Boolean})
         o# (gensym)]
-    `(~'let [~pool (new ~Pool (~'make-array ~'System.Object ~length) -1)]
+    `(~'let []
+      (~'def ~pool (new ~Pool (~'make-array ~'System.Object ~length) -1))
       (~'defn ~return
         [~(with-meta (symbol "a") {:tag type-sym})] 
         (~'recycle ~pool ~'a))
@@ -36,9 +37,7 @@
           ~@(map #(list 'set! (list (symbol (str "." %)) o#) %) 
               fields) ~o#)
         (new ~type-sym ~@fields)))
-      (~'def ~pool ~pool)
-      ;(quote (~pool ~sym ~return))
-      )))
+      ~(mapv keyword [pool sym return]))))
 
 (comment 
 (deftype Pig [^:volatile-mutable color])
